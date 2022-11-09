@@ -1,0 +1,188 @@
+%matplotlib inline
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from skimage.data import shepp_logan_phantom
+
+image = shepp_logan_phantom()
+
+plt.imshow(image)
+
+
+# APPROACH A 
+
+#degrees 
+
+total_angle = 360 
+
+#En esta lista cargamos cada operación por el número de proyecciones
+
+projections = []
+
+A = [4, 20, 50, 100, 200, 300, 360]
+
+#Bucle 
+
+plt.figure(1,figsize = (15,5))
+
+for i, proj in enumerate(A):
+    
+    
+    ax = plt.subplot(3, 4, i+1)
+    
+    
+    proj_angles = np.arange(0, total_angle, total_angle / proj)
+    
+    sinogram = radon(image, theta = proj_angles)
+    
+    projections.append(sinogram)
+    
+    ax.imshow(sinogram, cmap = 'gray')  
+    
+    plt.title('Sinogram with {} projections'.format(proj))
+    plt.xlabel('Number of projections')
+    
+plt.suptitle('Approach A', fontsize = 16, fontweight = 'bold')
+
+plt.tight_layout()
+plt.show()
+
+
+
+
+# APPROACH B
+
+
+# angles
+
+B = [4, 20, 50, 100,  200, 300, 360]
+
+#En esta lista cargamos cada operación por el número de angúlos
+
+
+sinograms_angles = []
+
+plt.figure(2,figsize = (15,5))
+
+#Loop
+
+for i, angle in enumerate(B):
+    
+    #cada vez se añade un subpplot iterativamente
+    
+    ax = plt.subplot(3, 4, i + 1)
+    
+    projection_angles = np.arange(0, angle, 1)
+        
+    sinogram = radon(image, theta =projection_angles )
+
+    sinograms_angles.append(sinogram)
+       
+    ax.imshow(sinogram, cmap = 'gray')
+    
+    plt.title('Sinogram with {} projections \n in angle = {}º'.format(proj,angle))
+    
+plt.suptitle('Approach B', fontsize = 16, fontweight = 'bold')
+
+plt.tight_layout()
+plt.show()
+
+
+##########################################
+
+
+#APPROACH A
+
+from skimage.transform import iradon
+
+
+filters = ['ramp', 'shepp-logan', 'cosine', 'hamming', 'hann']
+
+A = [4, 20, 50, 100, 200, 300, 360]
+
+cnt = 1 
+
+plt.figure(3, figsize = (18,16))
+
+for i in n_projections:
+    
+    theta1 = np.linspace(0., 360., i)
+    
+    sinogram = radon(image, theta = theta1, preserve_range = True)
+    
+    for n in filters:
+        
+        imA = iradon(sinogram, theta = theta1, filter_name = n)
+        
+        plt.subplot(len(A), len(filters), cnt)
+        
+        plt.imshow(imA, cmap = 'gray')
+        
+        plt.title('Phantom with {} filter \n and {} projections'.format(n, i))
+        
+        plt.yticks([0,50,100,150,200,256])
+        
+        plt.xlabel('Number of pixels')
+        
+        plt.ylabel('Number of pixels')
+        
+        plt.xticks([0,50,100,150,200,256], rotation = 90)
+        
+        cnt +=1
+        
+    plt.suptitle('Approach A', fontsize = 16, fontweight = 'bold')
+
+plt.tight_layout()
+plt.show()
+
+
+###############################
+
+
+#APPROACH B
+
+from skimage.transform import iradon
+
+# angles
+
+filters = ['ramp', 'shepp-logan', 'cosine', 'hamming', 'hann']
+
+B = [4, 20, 50, 100,  200, 300, 360]
+
+sinograms_angles = 360
+
+cnt = 1
+
+plt.figure(4, figsize = (18,14))
+
+for i in n_projections:
+    
+    theta2 = np.linspace(0., i, sinograms_angles)
+    
+    sinogram = radon(image, theta = theta2, preserve_range = True)
+    
+    for n in filters:
+        
+        imB = iradon(sinogram, theta = theta2, filter_name = n)
+        
+        plt.subplot(len(A), len(filters), cnt)
+        
+        plt.imshow(imB, cmap = 'gray')
+        
+        plt.title('Phantom with {} filter \n and 360 projections'.format(n, i))
+                      
+        plt.yticks([0,50,100,150,200,256])
+        
+        plt.xlabel('Number of pixels')
+        
+        plt.ylabel('Number of pixels')
+        
+        plt.xticks([0,50,100,150,200,256], rotation = 90)
+        
+        cnt +=1
+        
+    plt.suptitle('Approach A', fontsize = 16, fontweight = 'bold')
+
+plt.tight_layout()
+plt.show()
