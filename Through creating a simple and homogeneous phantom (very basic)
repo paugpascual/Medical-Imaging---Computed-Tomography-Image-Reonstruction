@@ -1,0 +1,323 @@
+%matplotlib inline
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+#Definition of constants 
+
+XPhantom_size = 256
+YPhantom_size = 256
+
+
+Background = 0
+
+Tis1 = 1 
+radT1 = 100
+
+Tis2 = 2 
+radT2 = 5
+
+#Aqui se define la posición de la mancha
+
+h = 180 
+w = 80 
+
+##########
+
+def create_circular_mask(h, w, center=None, radius=None):
+
+    if center is None: # use the middle of the image
+        center = (int(w/2), int(h/2))
+    if radius is None: # use the smallest distance between the center and image walls
+        radius = min(center[0], center[1], w-center[0], h-center[1])
+
+    Y, X = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((X - center[0])**2 + (Y-center[1])**2)
+
+    mask = dist_from_center <= radius
+    return mask
+
+# https://newbedev.com/how-can-i-create-a-circular-mask-for-a-numpy-array
+
+
+
+###############
+
+#Creamos una matriz de pixeles negros mediante np.zeros
+
+main = np.zeros((XPhantom_size,YPhantom_size))
+
+#Llamamos la función para crear el phantom y la mancha
+#Variable Tis es Tissue 1
+Tis = create_circular_mask(256,256, radius = radT1)
+
+#Variable manchita es Tissue 2 
+manchita = create_circular_mask(256,256, center = (h,w), radius = radT2) # Representa tejdo dentro de la mama (representado en color blanco dentro del plot)
+
+
+#Definimos color a valor 1 
+main[Tis] = 1
+
+#Definimos color a valor 2 
+
+main[manchita] = 2
+
+
+#MOSTRAR EL XRAY
+plt.imshow(main,cmap='gray')
+
+#########
+
+plt.plot(main[w, : ])
+
+#########
+
+
+from skimage.transform import radon
+
+# APPROACH A 
+
+#degrees 
+
+total_angle = 360 
+
+#En esta lista cargamos cada operación por el número de proyecciones
+
+projections = []
+
+A = [4, 20, 50, 100, 200, 300, 360]
+
+#Bucle 
+
+plt.figure(1,figsize = (15,5))
+
+for i, proj in enumerate(A):
+    
+    
+    ax = plt.subplot(3, 4, i+1)
+    
+    
+    proj_angles = np.arange(0, total_angle, total_angle / proj)
+    
+    sinogram = radon(main, theta = proj_angles)
+    
+    projections.append(sinogram)
+    
+    ax.imshow(sinogram, cmap = 'gray')  
+    
+    plt.title('Sinogram with {} projections'.format(proj))
+    plt.xlabel('Number of projections')
+    
+plt.suptitle('Approach A', fontsize = 16, fontweight = 'bold')
+
+plt.tight_layout()
+plt.show()
+
+#####################
+
+# APPROACH B
+
+
+# angles
+
+B = [4, 20, 50, 100,  200, 300, 360]
+
+#En esta lista cargamos cada operación por el número de angúlos
+
+
+sinograms_angles = []
+
+plt.figure(2,figsize = (15,5))
+
+#Loop
+
+for i, angle in enumerate(B):
+    
+    #cada vez se añade un subpplot iterativamente
+    
+    ax = plt.subplot(3, 4, i + 1)
+    
+    projection_angles = np.arange(0, angle, 1)
+        
+    sinogram = radon(main, theta =projection_angles )
+
+    sinograms_angles.append(sinogram)
+       
+    ax.imshow(sinogram, cmap = 'gray')
+    
+    plt.title('Sinogram with {} projections \n in angle = {}º'.format(proj,angle))
+    
+plt.suptitle('Approach B', fontsize = 16, fontweight = 'bold')
+
+plt.tight_layout()
+plt.show()
+
+
+##################
+
+# RECONSTRUCTION WITH FILTERED BACK PROJECTION (FBP)
+
+#APPROACH A
+
+from skimage.transform import iradon
+
+
+filters = ['ramp', 'shepp-logan', 'cosine', 'hamming', 'hann']
+
+A = [4, 20, 50, 100, 200, 300, 360]
+
+cnt = 1 
+
+plt.figure(3, figsize = (18,16))
+
+for i in A:
+    
+    theta1 = np.linspace(0., 360., i)
+    
+    sinogram = radon(main, theta = theta1, preserve_range = True)
+    
+    for n in filters:
+        
+        imA = iradon(sinogram, theta = theta1, filter_name = n)
+        
+        plt.subplot(len(A), len(filters), cnt)
+        
+        plt.imshow(imA, cmap = 'gray')
+        
+        plt.title('Phantom with {} filter \n and {} projections'.format(n, i))
+        
+        plt.yticks([0,50,100,150,200,256])
+        
+        plt.xlabel('Number of pixels')
+        
+        plt.ylabel('Number of pixels')
+        
+        plt.xticks([0,50,100,150,200,256], rotation = 90)
+        
+        cnt +=1
+        
+    plt.suptitle('Approach A', fontsize = 16, fontweight = 'bold')
+
+plt.tight_layout()
+plt.show()
+
+
+##############
+
+#APPROACH B
+
+from skimage.transform import iradon
+
+# angles
+
+filters = ['ramp', 'shepp-logan', 'cosine', 'hamming', 'hann']
+
+B = [4, 20, 50, 100,  200, 300, 360]
+
+sinograms_angles = 360
+
+cnt = 1
+
+plt.figure(4, figsize = (18,14))
+
+for i in B:
+    
+    theta2 = np.linspace(0., i, sinograms_angles)
+    
+    sinogram = radon(main, theta = theta2, preserve_range = True)
+    
+    for n in filters:
+        
+        imB = iradon(sinogram, theta = theta2, filter_name = n)
+        
+        plt.subplot(len(A), len(filters), cnt)
+        
+        plt.imshow(imB, cmap = 'gray')
+        
+        plt.title('Phantom with {} filter \n and 360 projections'.format(n, i))
+                      
+        plt.yticks([0,50,100,150,200,256])
+        
+        plt.xlabel('Number of pixels')
+        
+        plt.ylabel('Number of pixels')
+        
+        plt.xticks([0,50,100,150,200,256], rotation = 90)
+        
+        cnt +=1
+        
+    plt.suptitle('Approach B', fontsize = 16, fontweight = 'bold')
+
+plt.tight_layout()
+plt.show()
+
+##########
+
+plt.figure(5, figsize = (20,15))
+
+plt.plot(main[w, : ])
+
+plt.plot(imA[w, :])
+
+plt.plot(imB[w, :])
+
+##########
+
+filters = ['ramp', 'shepp-logan', 'cosine', 'hamming', 'hann']
+
+noise = np.random.poisson(10, sinogram.shape)
+
+suma = sinogram + noise
+
+plt.figure(6, figsize = (20,15))
+
+plt.plot(main[w,:])
+
+for i in filters:
+    
+    final = iradon(suma, theta=projection_angles, filter_name= i )
+
+    plt.plot(final[w,:]) 
+    
+###########
+
+filters = ['ramp', 'shepp-logan', 'cosine', 'hamming', 'hann']
+
+plt.figure(7, figsize = (20,15))  
+
+noise = np.random.poisson(10, sinogram.shape)
+
+suma = sinogram + noise
+cnt = 1
+
+for i in filters:
+    
+    plt.subplot(1, len(filters), cnt)
+    
+    final = iradon(suma, theta=projection_angles, filter_name= i )
+    
+    plt.imshow(final, cmap = 'gray')
+    
+    plt.title('Phantom with {} filter'.format(i))
+                      
+    plt.yticks([0,50,100,150,200,256])
+        
+    plt.xlabel('Number of pixels')
+        
+    plt.ylabel('Number of pixels')
+        
+    plt.xticks([0,50,100,150,200,256], rotation = 90)
+
+    
+    cnt +=1
+
+
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
+
